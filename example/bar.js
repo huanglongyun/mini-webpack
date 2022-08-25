@@ -2,7 +2,9 @@
  * @Author: hly
  * @Date: 2022-08-23 14:20:25
  * @LastEditors: hly
- * @LastEditTime: 2022-08-23 14:20:39
+ * @LastEditTime: 2022-08-23 17:38:31
  * @Description:
  */
-console.log('bar')
+export default function bar() {
+    console.log('bar')
+};

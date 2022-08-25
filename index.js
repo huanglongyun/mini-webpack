@@ -1,14 +1,11 @@
-/*
- * @Author: hly
- * @Date: 2022-08-23 09:14:06
- * @LastEditors: hly
- * @LastEditTime: 2022-08-23 11:26:38
- * @Description:
- */
 import fs from 'fs';
+import ejs from 'ejs';
 import path from 'path';
 import parser from '@babel/parser';
 import traverse from '@babel/traverse';
+import { transformFromAst } from 'babel-core'
+
+let id = 0
 function createAsset(filePath) {
     // 1. 获取文件内容
     const source = fs.readFileSync(filePath, {
@@ -31,24 +28,32 @@ function createAsset(filePath) {
         }
     })
     // console.log(ast)
+
+    const { code } = transformFromAst(ast, null, {
+        presets: ["env"]
+    })
+    // console.log(code)
     return {
         filePath,
-        source,
-        deps
+        code,
+        deps,
+        mapping: {},
+        id: id++
     }
 }
 
 // const asset = createAsset()
 // console.log(asset)
 
-function createGraph () {
+function createGraph() {
     const mainAsset = createAsset('./example/main.js')
 
     // 创建一个队列(其实是就是数组)
-    const queue =[mainAsset]
+    const queue = [mainAsset]
     for (const asset of queue) {
         asset.deps.forEach(relativePath => {
-            const child = createAsset(path.resolve('./example',relativePath))
+            const child = createAsset(path.resolve('./example', relativePath))
+            asset.mapping[relativePath] = child.id
             queue.push(child)
         });
     }
@@ -56,4 +61,25 @@ function createGraph () {
     return queue
 }
 const graph = createGraph()
-console.log(graph)
+// console.log(graph)
+
+function build(graph) {
+    // 导入ejs模板文件
+    const template = fs.readFileSync('./bunble.ejs', { encoding: 'utf-8' })
+
+    const data = graph.map(asset => {
+        const { id, code, mapping } = asset
+        return {
+            id, code, mapping
+        }
+    })
+    const code = ejs.render(template,{data})
+    // console.log('code=>',code)
+
+    // console.log('data=>',data)
+    // 将生成的代码写入文件
+    fs.writeFileSync("./dist/bundle.js", code)
+}
+
+// 执行函数
+build(graph)

@@ -1,0 +1,27 @@
+
+// 包含多个文件的内容
+(function (moudles) {
+    function require(id) {
+        const [fn, mapping ] = moudles[id]
+
+        const module = {
+            exports: {}
+        }
+        function localRequire (filePath) {
+            const id = mapping[filePath]
+            return require(id)
+        }
+        fn(localRequire, module, module.exports)
+
+        return module.exports
+    }
+
+    // 执行入口函数mainjs
+    require(0)
+})({
+    <% data.forEach(info=>{ %>
+        <%- info["id"] %>: [function (require, module, exports) {
+            <%- info["code"] %>
+        },<%- JSON.stringify(info["mapping"]) %>],
+    <% }) %>
+})
