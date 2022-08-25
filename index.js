@@ -4,14 +4,44 @@ import path from 'path';
 import parser from '@babel/parser';
 import traverse from '@babel/traverse';
 import { transformFromAst } from 'babel-core'
+import {jsonLoader} from './jsonLoader.js'
+const webpackConfig = {
+    module: {
+        rules: [
+            { test: /\.json$/, use: [jsonLoader] },
+        ],
+    },
+
+}
 
 let id = 0
 function createAsset(filePath) {
     // 1. 获取文件内容
-    const source = fs.readFileSync(filePath, {
+    let source = fs.readFileSync(filePath, {
         encoding: 'utf-8'
     })
+
+
     // console.log(source)
+
+    // initLoader
+
+    const loaders = webpackConfig.module.rules
+    const loaderContext={
+        addDeps(dep){
+            console.log("addDeps:",dep)
+        }
+    }
+
+    loaders.forEach(({test,use}) => {
+        if(test.test(filePath)){
+            use.reverse().forEach(fn=>{
+                source= fn.call(loaderContext, source)
+            })
+        }
+    });
+
+
     // 2. 获取依赖关系
     // ast => 抽象语法树
     const ast = parser.parse(source, {
@@ -73,7 +103,7 @@ function build(graph) {
             id, code, mapping
         }
     })
-    const code = ejs.render(template,{data})
+    const code = ejs.render(template, { data })
     // console.log('code=>',code)
 
     // console.log('data=>',data)
